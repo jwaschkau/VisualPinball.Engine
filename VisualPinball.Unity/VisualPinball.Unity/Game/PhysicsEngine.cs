@@ -145,10 +145,11 @@ namespace VisualPinball.Unity
 
 		internal Transform UnregisterBall(int ballId)
 		{
-			var transform = _transforms[ballId];
+			var t = _transforms[ballId];
 			_transforms.Remove(ballId);
 			_ballStates.Remove(ballId);
-			return transform;
+			_insideOfs.SetOutsideOfAll(ballId);
+			return t;
 		}
 
 		internal void EnableCollider(int itemId)

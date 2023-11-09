@@ -247,6 +247,7 @@ namespace VisualPinball.Unity
 
 			// prepare job
 			var events = _eventQueue.AsParallelWriter();
+			var overlappingColliders = new NativeParallelHashSet<int>(0, Allocator.TempJob);
 			var updatePhysics = new PhysicsUpdateJob {
 				InitialTimeUsec = NowUsec,
 				DeltaTimeMs = Time.deltaTime * 1000,
@@ -272,7 +273,7 @@ namespace VisualPinball.Unity
 				TriggerStates = _triggerStates,
 				DisabledCollisionItems = _disabledCollisionItems,
 				PlayfieldBounds = _playfieldBounds,
-				OverlappingColliders = new NativeParallelHashSet<int>(0, Allocator.TempJob)
+				OverlappingColliders = overlappingColliders,
 			};
 
 			var env = _physicsEnv[0];
@@ -412,6 +413,8 @@ namespace VisualPinball.Unity
 			}
 
 			#endregion
+
+			overlappingColliders.Dispose();
 		}
 		
 		private void OnDestroy()

@@ -15,6 +15,7 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 using System;
+using Unity.Mathematics;
 using UnityEngine;
 using VisualPinball.Engine.VPT.Bumper;
 
@@ -74,13 +75,14 @@ namespace VisualPinball.Unity
 		protected override void CreateColliders(ref ColliderReference colliders,
 			ref ColliderReference kinematicColliders, float margin)
 		{
+			var matrix = MainComponent.transform.worldToLocalMatrix.WorldToLocalTranslateWithinPlayfield(Player.PlayfieldToWorldMatrix);
 			var height = MainComponent.PositionZ;
 			if (ColliderComponent.IsKinematic) {
-				kinematicColliders.Add(new CircleCollider(MainComponent.Position, MainComponent.Radius, height,
-					height + MainComponent.HeightScale, GetColliderInfo(), ColliderType.Bumper));
+				kinematicColliders.Add(new CircleCollider(new float2(0), MainComponent.Radius, height,
+					height + 100f, GetColliderInfo(), ColliderType.Bumper), matrix);
 			} else {
-				colliders.Add(new CircleCollider(MainComponent.Position, MainComponent.Radius, height,
-					height + MainComponent.HeightScale, GetColliderInfo(), ColliderType.Bumper));
+				colliders.Add(new CircleCollider(new float2(0), MainComponent.Radius, height,
+					height + 100f, GetColliderInfo(), ColliderType.Bumper), matrix);
 			}
 		}
 

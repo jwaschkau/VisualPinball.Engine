@@ -74,6 +74,8 @@ namespace VisualPinball.Unity
 		[NonSerialized] private NativeParallelHashMap<int, float4x4> _updatedKinematicTransforms = new(0, Allocator.Persistent);
 		[NonSerialized] private readonly Dictionary<int, SkinnedMeshRenderer[]> _skinnedMeshRenderers = new();
 
+		[NonSerialized] private readonly Dictionary<int, IRotatableAnimationComponent> _rotatableComponent = new();
+
 		#endregion
 
 		[NonSerialized] private readonly Queue<InputAction> _inputActions = new();
@@ -121,6 +123,7 @@ namespace VisualPinball.Unity
 			var itemId = go.GetInstanceID();
 			_transforms.TryAdd(itemId, go.transform);
 
+			// states
 			switch (item) {
 				case BallComponent c:
 					if (!_ballStates.ContainsKey(itemId)) {
@@ -140,6 +143,11 @@ namespace VisualPinball.Unity
 				case SpinnerComponent c: _spinnerStates[itemId] = c.CreateState(); break;
 				case SurfaceComponent c: _surfaceStates[itemId] = c.CreateState(); break;
 				case TriggerComponent c: _triggerStates[itemId] = c.CreateState(); break;
+			}
+
+			// animations
+			if (item is IRotatableAnimationComponent rotatableComponent) {
+				_rotatableComponent.TryAdd(itemId, rotatableComponent);
 			}
 		}
 
@@ -376,8 +384,10 @@ namespace VisualPinball.Unity
 			using (var enumerator = _gateStates.GetEnumerator()) {
 				while (enumerator.MoveNext()) {
 					ref var gateState = ref enumerator.Current.Value;
-					var gateTransform = _transforms[gateState.WireItemId];
-					gateTransform.localRotation = quaternion.RotateX(-gateState.Movement.Angle);
+					var component = _rotatableComponent[enumerator.Current.Key];
+					component.OnRotationUpdated(gateState.Movement.Angle);
+//					var gateTransform = _transforms[gateState.WireItemId];
+//					gateTransform.localRotation = quaternion.RotateX(-gateState.Movement.Angle);
 				}
 			}
 

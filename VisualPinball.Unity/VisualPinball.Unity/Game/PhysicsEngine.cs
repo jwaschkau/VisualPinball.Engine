@@ -189,6 +189,8 @@ namespace VisualPinball.Unity
 		{
 			// create static octree
 			var sw = Stopwatch.StartNew();
+			var playfield = GetComponentInChildren<PlayfieldComponent>();
+
 			var colliderItems = GetComponentsInChildren<ICollidableComponent>();
 			Debug.Log($"Found {colliderItems.Length} collidable items.");
 			var colliders = new ColliderReference(Allocator.TempJob);
@@ -196,6 +198,9 @@ namespace VisualPinball.Unity
 			foreach (var colliderItem in colliderItems) {
 				if (!colliderItem.IsCollidable) {
 					_disabledCollisionItems.Add(colliderItem.ItemId);
+				}
+				if (colliderItem is ICollidableNonTransformableComponent nonTransformable) {
+					var matrix = nonTransformable.TranslateWithinPlayfieldMatrix(playfield.transform.worldToLocalMatrix);
 				}
 				colliderItem.GetColliders(_player, ref colliders, ref kinematicColliders, 0);
 			}
@@ -216,9 +221,8 @@ namespace VisualPinball.Unity
 
 			// create octree
 			var elapsedMs = sw.Elapsed.TotalMilliseconds;
-			var playfieldBounds = GetComponentInChildren<PlayfieldComponent>().Bounds;
-			_playfieldBounds = GetComponentInChildren<PlayfieldComponent>().Bounds;
-			_octree = new NativeOctree<int>(playfieldBounds, 1024, 10, Allocator.Persistent);
+			_playfieldBounds = playfield.Bounds;
+			_octree = new NativeOctree<int>(_playfieldBounds, 1024, 10, Allocator.Persistent);
 
 			sw.Restart();
 			var populateJob = new PhysicsPopulateJob {

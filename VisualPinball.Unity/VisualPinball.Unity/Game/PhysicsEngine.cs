@@ -72,6 +72,7 @@ namespace VisualPinball.Unity
 		[NonSerialized] private readonly Dictionary<int, Transform> _transforms = new();
 		[NonSerialized] private NativeParallelHashMap<int, float4x4> _kinematicTransforms = new(0, Allocator.Persistent);
 		[NonSerialized] private NativeParallelHashMap<int, float4x4> _updatedKinematicTransforms = new(0, Allocator.Persistent);
+		[NonSerialized] private NativeParallelHashMap<int, float4x4> _nonTransformableColliderMatrices = new(0, Allocator.Persistent);
 		[NonSerialized] private readonly Dictionary<int, SkinnedMeshRenderer[]> _skinnedMeshRenderers = new();
 
 		[NonSerialized] private readonly Dictionary<int, IRotatableAnimationComponent> _rotatableComponent = new();
@@ -199,10 +200,15 @@ namespace VisualPinball.Unity
 				if (!colliderItem.IsCollidable) {
 					_disabledCollisionItems.Add(colliderItem.ItemId);
 				}
-				if (colliderItem is ICollidableNonTransformableComponent nonTransformable) {
-					var matrix = nonTransformable.TranslateWithinPlayfieldMatrix(playfield.transform.worldToLocalMatrix);
+
+				var translateWithinPlayfieldMatrix = colliderItem is ICollidableNonTransformableComponent nonTransformableColliderItem
+					? nonTransformableColliderItem.TranslateWithinPlayfieldMatrix(playfield.transform.worldToLocalMatrix)
+					: float4x4.identity;
+				if (colliderItem is ICollidableNonTransformableComponent) {
+					_nonTransformableColliderMatrices[colliderItem.ItemId] = translateWithinPlayfieldMatrix;
 				}
-				colliderItem.GetColliders(_player, ref colliders, ref kinematicColliders, 0);
+
+				colliderItem.GetColliders(_player, this, ref colliders, ref kinematicColliders, translateWithinPlayfieldMatrix, 0);
 			}
 
 			// allocate colliders
@@ -270,6 +276,7 @@ namespace VisualPinball.Unity
 				KinematicCollidersAtIdentity = _kinematicCollidersAtIdentity,
 				KinematicColliderLookups = _kinematicColliderLookups,
 				UpdatedKinematicTransforms = _updatedKinematicTransforms,
+				NonTransformableColliderMatrices = _nonTransformableColliderMatrices,
 				InsideOfs = _insideOfs,
 				Events = events,
 				Balls = _ballStates,
@@ -290,7 +297,8 @@ namespace VisualPinball.Unity
 
 			var env = _physicsEnv[0];
 			var state = new PhysicsState(ref env, ref _octree, ref _colliders, ref _kinematicColliders,
-				ref _kinematicCollidersAtIdentity, ref _updatedKinematicTransforms, ref _kinematicColliderLookups, ref events,
+				ref _kinematicCollidersAtIdentity, ref _updatedKinematicTransforms, ref _nonTransformableColliderMatrices,
+				ref _kinematicColliderLookups, ref events,
 				ref _insideOfs, ref _ballStates, ref _bumperStates, ref _dropTargetStates, ref _flipperStates, ref _gateStates,
 				ref _hitTargetStates, ref _kickerStates, ref _plungerStates, ref _spinnerStates,
 				ref _surfaceStates, ref _triggerStates, ref _disabledCollisionItems, ref _swapBallCollisionHandling);
